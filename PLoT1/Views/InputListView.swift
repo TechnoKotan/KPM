@@ -23,7 +23,9 @@ struct InputListView: View {
                     Label("Delete", systemImage: "trash")
                 }
 
-                Button { vm.clearAll() } label: { Label("Clear all", systemImage: "trash.slash") }
+                Button { vm.clearAll() } label: {
+                    Label("Clear all", systemImage: "trash.slash")
+                }
 
                 Divider().frame(height: 22)
 
@@ -35,6 +37,21 @@ struct InputListView: View {
             .padding(.horizontal)
 
             Table(of: InputChannel.self, selection: $vm.selection) {
+                TableColumn("") { ch in
+                    Image(systemName: "line.3.horizontal")
+                        .foregroundStyle(.secondary)
+                        .help("Drag whole channel")
+                        .frame(width: 18)
+                        .contentShape(Rectangle())
+                        .draggable(vm.makeChannelDragPayload(sourceID: ch.id))
+                        .dropDestination(for: ChannelDragPayload.self) { items, _ in
+                            guard let payload = items.first else { return false }
+                            vm.applyChannelDrop(payload: payload, targetID: ch.id)
+                            return true
+                        }
+                }
+                .width(min: 28, ideal: 32, max: 36)
+
                 TableColumn("#") { ch in
                     Text("\(vm.index(of: ch) + 1)")
                         .frame(width: 34, alignment: .trailing)
