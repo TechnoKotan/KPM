@@ -8,3 +8,23 @@ struct InputChannel: Identifiable, Equatable, Codable {
     var phantom: Bool = false
     var comments: String = ""
 }
+
+extension InputChannel {
+    func snapshot() -> ChannelSnapshot {
+        ChannelSnapshot(
+            source: source,
+            micDI: micDI,
+            stand: stand,
+            phantom: phantom,
+            comments: comments
+        )
+    }
+
+    mutating func apply(snapshot: ChannelSnapshot) {
+        source = snapshot.source
+        micDI = snapshot.micDI
+        stand = snapshot.stand
+        phantom = snapshot.phantom
+        comments = snapshot.comments
+    }
+}

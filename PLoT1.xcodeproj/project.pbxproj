@@ -10,9 +10,33 @@
 		57A84D062E6CD54600BBF693 /* PLoT1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PLoT1.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		57FFE7512F7AD0BF006C289C /* Exceptions for "PLoT1" folder in "PLoT1" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Models/ChannelField.swift,
+			);
+			target = 57A84D052E6CD54600BBF693 /* PLoT1 */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		57FFE7522F7AD0BF006C289C /* Exceptions for "PLoT1" folder in "Copy Bundle Resources" phase from "PLoT1" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 57A84D042E6CD54600BBF693 /* Resources */;
+			membershipExceptions = (
+				Models/ChannelField.swift,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		57A84D082E6CD54600BBF693 /* PLoT1 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				57FFE7512F7AD0BF006C289C /* Exceptions for "PLoT1" folder in "PLoT1" target */,
+				57FFE7522F7AD0BF006C289C /* Exceptions for "PLoT1" folder in "Copy Bundle Resources" phase from "PLoT1" target */,
+			);
 			path = PLoT1;
 			sourceTree = "<group>";
 		};

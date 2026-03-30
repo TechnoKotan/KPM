@@ -26,8 +26,7 @@ struct PresetDragPayload: Codable, Transferable {
 final class InputListViewModel: ObservableObject {
 
     @Published var channels: [InputChannel] = []
-    @Published var selection: Set<InputChannel.ID> = []
-
+    @Published var selection: Set<UUID> = []
     @Published private(set) var lastMultiSelection: [UUID] = []
 
     private let customToken = "Custom…"
@@ -62,10 +61,26 @@ final class InputListViewModel: ObservableObject {
         makeOptions(base: standBase, custom: standCustom)
     }
 
-    func captureMultiSelectionSnapshot(_ newSelection: Set<InputChannel.ID>) {
+    // MARK: Init
+
+    init() {}
+
+    // MARK: Selection
+
+    func captureMultiSelectionSnapshot(_ newSelection: Set<UUID>) {
         guard newSelection.count > 1 else { return }
-        lastMultiSelection = Array(newSelection)
+
+        // Держим порядок как в таблице, а не как попало из Set
+        lastMultiSelection = channels
+            .map(\.id)
+            .filter { newSelection.contains($0) }
     }
+
+    func index(of ch: InputChannel) -> Int {
+        channels.firstIndex(where: { $0.id == ch.id }) ?? 0
+    }
+
+    // MARK: Basic editing
 
     func setMicDI(_ value: String, sourceID: UUID) {
         setPreset(field: .micDI, value: value, sourceID: sourceID)
@@ -95,7 +110,9 @@ final class InputListViewModel: ObservableObject {
 
     func add() {
         channels.append(InputChannel())
-        if let last = channels.last { selection = [last.id] }
+        if let last = channels.last {
+            selection = [last.id]
+        }
     }
 
     func deleteSelected() {
@@ -107,10 +124,12 @@ final class InputListViewModel: ObservableObject {
     func clearAll() {
         channels.removeAll()
         selection.removeAll()
+        lastMultiSelection.removeAll()
     }
 
     func moveUp() {
         guard !selection.isEmpty else { return }
+
         let selectedIndices = channels.indices.filter { selection.contains(channels[$0].id) }
         guard let first = selectedIndices.first, first > 0 else { return }
 
@@ -123,6 +142,7 @@ final class InputListViewModel: ObservableObject {
 
     func moveDown() {
         guard !selection.isEmpty else { return }
+
         let selectedIndices = channels.indices.filter { selection.contains(channels[$0].id) }
         guard let last = selectedIndices.last, last < channels.count - 1 else { return }
 
@@ -133,9 +153,7 @@ final class InputListViewModel: ObservableObject {
         channels = newChannels
     }
 
-    func index(of ch: InputChannel) -> Int {
-        channels.firstIndex(where: { $0.id == ch.id }) ?? 0
-    }
+    // MARK: Old field-based drag/drop, leave as-is for now
 
     func applyDropFill(payload: PresetDragPayload, targetID: UUID) {
         let cleaned = payload.value.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -166,15 +184,52 @@ final class InputListViewModel: ObservableObject {
         selection = [targetID]
     }
 
+    // MARK: New channel-based drag/drop
+
+    func makeChannelDragPayload(sourceID: UUID) -> ChannelDragPayload {
+        let ids = resolvedBatchIDsOrdered(sourceID: sourceID)
+
+        let snapshots: [ChannelSnapshot] = ids.compactMap { id in
+            channels.first(where: { $0.id == id })?.snapshot()
+        }
+
+        return ChannelDragPayload(
+            snapshots: snapshots,
+            sourceIDs: ids
+        )
+    }
+
+    func applyChannelDrop(payload: ChannelDragPayload, targetID: UUID) {
+        guard let startIndex = channels.firstIndex(where: { $0.id == targetID }) else { return }
+        guard !payload.snapshots.isEmpty else { return }
+
+        for (offset, snapshot) in payload.snapshots.enumerated() {
+            let targetIndex = startIndex + offset
+            guard targetIndex < channels.count else { break }
+
+            channels[targetIndex].apply(snapshot: snapshot)
+        }
+
+        selection = [targetID]
+        clearChannelDragState()
+    }
+
+    func clearChannelDragState() {
+        lastMultiSelection.removeAll()
+    }
+
+    // MARK: Helpers
+
     private func setPreset(field: PresetField, value: String, sourceID: UUID) {
         let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty else { return }
 
         registerCustomIfNeeded(field: field, value: cleaned)
 
-        let ids = resolvedBatchIDs(sourceID: sourceID)
+        let ids = resolvedBatchIDsOrdered(sourceID: sourceID)
         for id in ids {
             guard let i = channels.firstIndex(where: { $0.id == id }) else { continue }
+
             switch field {
             case .micDI:
                 channels[i].micDI = cleaned
@@ -184,13 +239,17 @@ final class InputListViewModel: ObservableObject {
         }
     }
 
-    private func resolvedBatchIDs(sourceID: UUID) -> [UUID] {
+    private func resolvedBatchIDsOrdered(sourceID: UUID) -> [UUID] {
         if selection.count > 1, selection.contains(sourceID) {
-            return Array(selection)
+            return channels
+                .map(\.id)
+                .filter { selection.contains($0) }
         }
+
         if lastMultiSelection.count > 1, lastMultiSelection.contains(sourceID) {
             return lastMultiSelection
         }
+
         return [sourceID]
     }
 
@@ -226,8 +285,11 @@ final class InputListViewModel: ObservableObject {
         for s in items {
             let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
             if t.isEmpty { continue }
-            if seen.insert(t).inserted { out.append(t) }
+            if seen.insert(t).inserted {
+                out.append(t)
+            }
         }
+
         return out
     }
 
